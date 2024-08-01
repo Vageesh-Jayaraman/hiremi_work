@@ -1,0 +1,148 @@
+import 'package:flutter/material.dart';
+import 'package:hiremi_version_two/Custom_Widget/CustomContainer/OutlinedButton.dart';
+import 'package:hiremi_version_two/Edit_Profile_Section/BasicDetails/AddBasicDetails.dart';
+import 'package:hiremi_version_two/Utils/AppSizes.dart';
+import 'package:hiremi_version_two/Utils/colors.dart';
+import '../API_Integration/Add Basic Details/apiServices.dart';
+
+class BasicDetails extends StatefulWidget {
+  const BasicDetails({Key? key}) : super(key: key);
+
+  @override
+  _BasicDetailsState createState() => _BasicDetailsState();
+}
+
+class _BasicDetailsState extends State<BasicDetails> {
+  String lookingFor = '';
+  String city = '';
+  String state = '';
+  String email = '';
+  String phoneNumber = '';
+  String whatsappNumber = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBasicDetails();
+  }
+
+  Future<void> _loadBasicDetails() async {
+    final service = AddBasicDetailsService();
+    final details = await service.getBasicDetails();
+    print(details);
+    setState(() {
+      lookingFor = details['looking_for'] ?? '';
+      city = details['city'] ?? '';
+      state = details['state'] ?? '';
+      email = details['email'] ?? '';
+      phoneNumber = details['phone_number'] ?? '';
+      whatsappNumber = details['whatsapp_number'] ?? '';
+    });
+  }
+
+  bool isAllFieldValid() {
+    return lookingFor.isNotEmpty &&
+        city.isNotEmpty &&
+        state.isNotEmpty &&
+        email.isNotEmpty &&
+        phoneNumber.isNotEmpty &&
+        whatsappNumber.isNotEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedContainer(
+      onTap: () => Navigator.of(context)
+          .push(MaterialPageRoute(builder: (context) => const AddBasicDetails())),
+      title: 'Basic Details',
+      isTrue: isAllFieldValid(),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (isAllFieldValid())
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: Sizes.responsiveMd(context),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.business_center_outlined,
+                    size: 10,
+                    color: AppColors.secondaryText,
+                  ),
+                  SizedBox(
+                    width: Sizes.responsiveXxs(context),
+                  ),
+                  const Text('Looking for ',
+                      style: TextStyle(
+                        fontSize: 10.0,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.black,
+                      )),
+                  Text(lookingFor,
+                      style: TextStyle(
+                        fontSize: 10.0,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      )),
+                ],
+              ),
+              SizedBox(
+                height: Sizes.responsiveSm(context),
+              ),
+              BasicDetailsChild(
+                icon: Icons.add_location_alt,
+                title: '$city, $state',
+              ),
+              SizedBox(
+                height: Sizes.responsiveSm(context),
+              ),
+              BasicDetailsChild(icon: Icons.mail_outline, title: email),
+              SizedBox(
+                height: Sizes.responsiveSm(context),
+              ),
+              BasicDetailsChild(icon: Icons.call_outlined, title: phoneNumber),
+              SizedBox(
+                height: Sizes.responsiveSm(context),
+              ),
+              BasicDetailsChild(
+                  icon: Icons.message_outlined, title: whatsappNumber),
+            ],
+          )
+      ]),
+    );
+  }
+}
+
+class BasicDetailsChild extends StatelessWidget {
+  const BasicDetailsChild({Key? key,
+    required this.icon,
+    required this.title,
+  }) : super(key: key);
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 10,
+          color: AppColors.secondaryText,
+        ),
+        SizedBox(width: Sizes.responsiveXxs(context)),
+        Text(title,
+            style: const TextStyle(
+              fontSize: 10.0,
+              fontWeight: FontWeight.w400,
+              color: AppColors.black,
+            )),
+      ],
+    );
+  }
+}
