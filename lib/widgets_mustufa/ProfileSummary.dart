@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hiremi_version_two/Custom_Widget/CustomContainer/OutlinedButton.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../Edit_Profile_Section/ProfileSummary/ProfileSummary.dart';
+import '../Edit_Profile_Section/ProfileSummary/AddProfileSummary.dart';
+import '../../API_Integration/Add Profile Summary/apiServices.dart';
 
 class ProfileSummary extends StatefulWidget {
   const ProfileSummary({Key? key}) : super(key: key);
@@ -22,8 +22,10 @@ class _ProfileSummaryState extends State<ProfileSummary> {
   }
 
   Future<String?> _fetchProfileSummary() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('profileSummary');
+    final AddProfileSummaryService service = AddProfileSummaryService();
+    final summary = await service.getProfileSummary();
+    print('Fetched profile summary: $summary'); // Debug print
+    return summary;
   }
 
   @override
@@ -34,12 +36,14 @@ class _ProfileSummaryState extends State<ProfileSummary> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
+          print('Error fetching profile summary: ${snapshot.error}'); // Debug print
           return Center(child: Text('Error: ${snapshot.error}'));
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          print('No profile summary available'); // Debug print
           return OutlinedContainer(
-            onTap: () =>
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => AddProfileSummary())),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => AddProfileSummary()),
+            ),
             title: 'Profile Summary',
             isTrue: false,
             child: const Text(
@@ -53,10 +57,11 @@ class _ProfileSummaryState extends State<ProfileSummary> {
           );
         } else {
           final summary = snapshot.data!;
+          print('Displaying profile summary: $summary'); // Debug print
           return OutlinedContainer(
-            onTap: () =>
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => AddProfileSummary())),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => AddProfileSummary()),
+            ),
             title: 'Profile Summary',
             isTrue: true,
             child: Column(

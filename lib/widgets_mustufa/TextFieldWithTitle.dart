@@ -3,9 +3,9 @@ import 'package:hiremi_version_two/Edit_Profile_Section/widgets/CustomTextField.
 import 'package:hiremi_version_two/Utils/AppSizes.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
 
-
 class TextFieldWithTitle extends StatelessWidget {
-  const TextFieldWithTitle({Key? key, 
+  const TextFieldWithTitle({
+    Key? key,
     required this.controller,
     required this.title,
     required this.hintText,
@@ -14,6 +14,7 @@ class TextFieldWithTitle extends StatelessWidget {
     this.suffix,
     this.spaceBtwTextField,
     this.maxLines,
+    this.validator,
   }) : super(key: key);
 
   final TextEditingController controller;
@@ -22,6 +23,7 @@ class TextFieldWithTitle extends StatelessWidget {
   final Widget? prefix, suffix;
   final double? spaceBtwTextField;
   final int? maxLines;
+  final FormFieldValidator<String>? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -48,12 +50,19 @@ class TextFieldWithTitle extends StatelessWidget {
         SizedBox(
           height: spaceBtwTextField ?? Sizes.responsiveSm(context),
         ),
-        CustomTextField(
-            controller: controller,
+        // Use TextFormField for validation
+        TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
             hintText: hintText,
-            prefix: prefix,
-            suffix: suffix,
-            maxLines: maxLines),
+            prefixIcon: prefix,
+            suffixIcon: suffix,
+            border: OutlineInputBorder(),
+          ),
+          maxLines: maxLines,
+          validator: validator,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+        ),
       ],
     );
   }

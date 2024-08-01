@@ -98,6 +98,12 @@ class AddKeySkills extends StatelessWidget {
                 size: 15,
                 color: AppColors.secondaryText,
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a skill';
+                }
+                return null;
+              },
             ),
             SizedBox(
               height: Sizes.responsiveXs(context),

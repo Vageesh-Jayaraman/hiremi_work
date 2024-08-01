@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:hiremi_version_two/Utils/AppSizes.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
 
-
-
 class CustomTextField extends StatelessWidget {
-  const CustomTextField({Key? key, 
-    required this.controller, required this.hintText, this.textInputType = TextInputType.text,  this.maxLines,  this.suffix, this.prefix,
+  const CustomTextField({
+    Key? key,
+    required this.controller,
+    required this.hintText,
+    this.textInputType = TextInputType.text,
+    this.maxLines,
+    this.suffix,
+    this.prefix,
+    this.validator,
   }) : super(key: key);
 
   final TextEditingController controller;
@@ -15,10 +20,11 @@ class CustomTextField extends StatelessWidget {
   final int? maxLines;
   final Widget? suffix;
   final Widget? prefix;
+  final String? Function(String?)? validator;  // Validator parameter added
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       cursorColor: AppColors.black,
       textAlign: TextAlign.start,
@@ -27,8 +33,9 @@ class CustomTextField extends StatelessWidget {
         fontSize: 12,
         fontWeight: FontWeight.w500,
       ),
-      expands: false,
       keyboardType: textInputType,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: InputDecoration(
         hintText: hintText,
         suffixIcon: suffix,

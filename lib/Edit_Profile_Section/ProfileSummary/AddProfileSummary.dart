@@ -94,6 +94,16 @@ class AddProfileSummary extends StatelessWidget {
             CustomTextField(
               controller: summaryController,
               hintText: 'Tell us about yourself...',
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a profile summary';
+                }
+                if (value.split(' ').length < 100 ||
+                    value.split(' ').length > 250) {
+                  return 'Summary must be between 100 and 250 words';
+                }
+                return null;
+              },
             ),
             SizedBox(
               height: Sizes.responsiveXs(context),

@@ -89,9 +89,7 @@ class _LogInState extends State<LogIn> {
 
       if (profileExists) {
         // Profile exists
-        final pref = await SharedPreferences.getInstance();
-        await pref.setInt('profileId', profileId!);
-        await SharedPreferencesHelper.setProfileId(profileId);
+        await SharedPreferencesHelper.setProfileId(profileId!);
         print("Existing profile ID: $profileId");
       } else {
         // Profile does not exist, create a new one
@@ -101,7 +99,6 @@ class _LogInState extends State<LogIn> {
       print("Failed to check profile: ${response.statusCode}");
     }
   }
-
 
   Future<void> _createProfile(int userId) async {
     final String apiUrl = "http://13.127.81.177:8000/api/profiles/";
@@ -117,8 +114,6 @@ class _LogInState extends State<LogIn> {
       final profile = jsonDecode(response.body);
       var profileId = profile['id'];
 
-      final pref = await SharedPreferences.getInstance();
-      await pref.setInt('profileId', profileId);
       await SharedPreferencesHelper.setProfileId(profileId);
       print("Profile created with ID: $profileId");
     } else {
@@ -127,6 +122,8 @@ class _LogInState extends State<LogIn> {
       print("Failed to create profile");
     }
   }
+
+
 
   Future<void> _retrieveId() async {
     final prefs = await SharedPreferences.getInstance();
