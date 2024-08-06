@@ -5,6 +5,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AddKeySkillsService {
   final String url = 'http://13.127.81.177:8000/api/key-skills/';
 
+  Future<bool> addOrUpdateKeySkills(Map<String, String> details) async {
+    final int? profileId = await _getProfileId();
+    if (profileId != null) {
+      final int? skillId = await _getSkillId(profileId);
+      if (skillId != null) {
+        return await updateKeySkills(skillId, details);
+      } else {
+        return await addKeySkills(details);
+      }
+    } else {
+      print('Profile ID not found in SharedPreferences.');
+      return false;
+    }
+  }
+
   Future<bool> addKeySkills(Map<String, String> details) async {
     try {
       final response = await http.post(
@@ -25,6 +40,30 @@ class AddKeySkillsService {
       }
     } catch (e) {
       print('Error occurred while adding key skills: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateKeySkills(int skillId, Map<String, String> details) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$url$skillId/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(details),
+      );
+
+      if (response.statusCode == 200) {
+        await _storeKeySkillsLocally(details['skill']!);
+        return true;
+      } else {
+        print('Failed to update key skills. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error occurred while updating key skills: $e');
       return false;
     }
   }
@@ -86,6 +125,41 @@ class AddKeySkillsService {
     } catch (e) {
       print('Error occurred while fetching key skills: $e');
       return [];
+    }
+  }
+
+  Future<int?> _getProfileId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('profileId');
+  }
+
+  Future<int?> _getSkillId(int profileId) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> skillsList = jsonDecode(response.body);
+
+        for (var skill in skillsList) {
+          final profile = skill['profile'];
+          final int profileIdFromDetails = profile is String
+              ? int.tryParse(profile) ?? -1
+              : profile is int
+              ? profile
+              : -1;
+
+          if (profileIdFromDetails == profileId) {
+            return skill['id'];
+          }
+        }
+        return null; // No matching profileId found
+      } else {
+        print('Failed to fetch key skills. Status code: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error occurred while fetching key skills: $e');
+      return null;
     }
   }
 }

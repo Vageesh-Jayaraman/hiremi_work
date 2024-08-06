@@ -52,8 +52,15 @@ class _BasicDetailsState extends State<BasicDetails> {
   @override
   Widget build(BuildContext context) {
     return OutlinedContainer(
-      onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (context) => const AddBasicDetails())),
+      onTap: () async {
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const AddBasicDetails()),
+        );
+        if (result == true) {
+          // Refresh the details if the result indicates success
+          _loadBasicDetails();
+        }
+      },
       title: 'Basic Details',
       isTrue: isAllFieldValid(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -117,7 +124,8 @@ class _BasicDetailsState extends State<BasicDetails> {
 }
 
 class BasicDetailsChild extends StatelessWidget {
-  const BasicDetailsChild({Key? key,
+  const BasicDetailsChild({
+    Key? key,
     required this.icon,
     required this.title,
   }) : super(key: key);

@@ -5,26 +5,39 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AddProfileSummaryService {
   final String url = 'http://13.127.81.177:8000/api/profile-summaries/';
 
-  Future<bool> addProfileSummary(Map<String, String> details) async {
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(details),
-      );
+  Future<bool> addOrUpdateProfileSummary(Map<String, String> details) async {
+    final int? profileId = int.tryParse(details['profile'] ?? '');
 
-      if (response.statusCode == 201) {
+    if (profileId == null) {
+      print('Invalid profile ID');
+      return false;
+    }
+
+    final existingSummaryId = await _getExistingSummaryId(profileId);
+
+    try {
+      final response = await (existingSummaryId != null
+          ? http.put(
+        Uri.parse('$url$existingSummaryId/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(details),
+      )
+          : http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(details),
+      ));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         await _storeProfileSummaryLocally(details['summary']!);
         return true;
       } else {
-        print('Failed to add profile summary. Status code: ${response.statusCode}');
+        print('Failed to add/update profile summary. Status code: ${response.statusCode}');
         print('Response body: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Error occurred while adding profile summary: $e');
+      print('Error occurred while adding/updating profile summary: $e');
       return false;
     }
   }
@@ -34,7 +47,7 @@ class AddProfileSummaryService {
     await prefs.setString('profileSummary', summary);
   }
 
-  Future<String> getProfileSummary() async {
+  Future<String?> getProfileSummary() async {
     final prefs = await SharedPreferences.getInstance();
     final String? summary = prefs.getString('profileSummary');
     final int? profileId = prefs.getInt('profileId');
@@ -84,5 +97,33 @@ class AddProfileSummaryService {
       print('Error occurred while fetching profile summary: $e');
       return '';
     }
+  }
+
+  Future<int?> _getExistingSummaryId(int profileId) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> summariesList = jsonDecode(response.body);
+
+        for (var summaryDetails in summariesList) {
+          final profile = summaryDetails['profile'];
+          final int profileIdFromDetails = profile is String
+              ? int.tryParse(profile) ?? -1
+              : profile is int
+              ? profile
+              : -1;
+
+          if (profileIdFromDetails == profileId) {
+            return summaryDetails['id'] as int?;
+          }
+        }
+      } else {
+        print('Failed to fetch profile summaries for existing check. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error occurred while fetching profile summaries for existing check: $e');
+    }
+    return null;
   }
 }

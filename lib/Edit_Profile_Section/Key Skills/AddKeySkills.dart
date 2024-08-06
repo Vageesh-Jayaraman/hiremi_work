@@ -1,23 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:hiremi_version_two/Sharedpreferences_data/shared_preferences_helper.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hiremi_version_two/Edit_Profile_Section/Education/AddEducation.dart';
 import 'package:hiremi_version_two/Profile_Screen.dart';
 import 'package:hiremi_version_two/Utils/AppSizes.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
-
 import '../../API_Integration/Add Key Skills/apiServices.dart';
 import '../widgets/CustomTextField.dart';
 
-class AddKeySkills extends StatelessWidget {
+class AddKeySkills extends StatefulWidget {
   AddKeySkills({Key? key}) : super(key: key);
 
+  @override
+  _AddKeySkillsState createState() => _AddKeySkillsState();
+}
+
+class _AddKeySkillsState extends State<AddKeySkills> {
   final skillController = TextEditingController();
   final AddKeySkillsService _apiService = AddKeySkillsService();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String profileId = "";
+  int? existingSkillId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKeySkills();
+  }
+
+  Future<void> _loadKeySkills() async {
+    final loadedSkills = await _apiService.getKeySkills();
+    setState(() {
+      skillController.text = loadedSkills.join(', ');
+      // Assuming we have a way to get the existingSkillId from the skills
+      // Update existingSkillId here if necessary
+    });
+  }
 
   Future<void> _saveKeySkills(BuildContext context) async {
-    if (skillController.text.isNotEmpty) {
+    if (_formKey.currentState?.validate() ?? false) {
       final int? savedId = await SharedPreferencesHelper.getProfileId();
       profileId = savedId?.toString() ?? "";
 
@@ -34,15 +54,15 @@ class AddKeySkills extends StatelessWidget {
       };
       print(details);
 
-      final success = await _apiService.addKeySkills(details);
+      final success = await _apiService.addOrUpdateKeySkills(details);
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Key skills added successfully')),
+          SnackBar(content: Text('Key skills added/updated successfully')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add key skills')),
+          SnackBar(content: Text('Failed to add/update key skills')),
         );
       }
     }
@@ -61,134 +81,135 @@ class AddKeySkills extends StatelessWidget {
             right: Sizes.responsiveDefaultSpace(context),
             bottom: kToolbarHeight,
             left: Sizes.responsiveDefaultSpace(context)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Key Skills',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            SizedBox(
-              height: Sizes.responsiveMd(context),
-            ),
-            Row(
-              children: [
-                const Text(
-                  'Key Skills',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                ),
-                Text(
-                  '*',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(
-              height: Sizes.responsiveSm(context),
-            ),
-            CustomTextField(
-              controller: skillController,
-              hintText: 'Eg: Flutter Developer',
-              suffix: Icon(
-                Icons.open_with,
-                size: 15,
-                color: AppColors.secondaryText,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Key Skills',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter a skill';
-                }
-                return null;
-              },
-            ),
-            SizedBox(
-              height: Sizes.responsiveXs(context),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                'Word Limit is 100-250 words.',
-                style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.secondaryText,
-                ),
+              SizedBox(
+                height: Sizes.responsiveMd(context),
               ),
-            ),
-            SizedBox(
-              height: Sizes.responsiveMd(context),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(Sizes.radiusSm)),
-                    padding: EdgeInsets.symmetric(
-                        vertical: Sizes.responsiveHorizontalSpace(context),
-                        horizontal: Sizes.responsiveMdSm(context)),
+              Row(
+                children: [
+                  const Text(
+                    'Key Skills',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                   ),
-                  onPressed: () async {
-                    await _saveKeySkills(context);
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => ProfileScreen()));
-                  },
-                  child: const Text(
-                    'Save',
+                  Text(
+                    '*',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.white,
+                      color: AppColors.primary,
                     ),
                   ),
+                ],
+              ),
+              SizedBox(
+                height: Sizes.responsiveSm(context),
+              ),
+              CustomTextField(
+                controller: skillController,
+                hintText: 'Eg: Flutter Developer',
+                suffix: Icon(
+                  Icons.open_with,
+                  size: 15,
+                  color: AppColors.secondaryText,
                 ),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppColors.primary, width: 0.5),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(Sizes.radiusSm)),
-                    padding: EdgeInsets.symmetric(
-                        vertical: Sizes.responsiveSm(context),
-                        horizontal: Sizes.responsiveMdSm(context)),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a skill';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(
+                height: Sizes.responsiveXs(context),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Word Limit is 100-250 words.',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.secondaryText,
                   ),
-                  onPressed: () async {
-                    await _saveKeySkills(context);
-                    Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => AddEducation()));
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Save & Next',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(
+                height: Sizes.responsiveMd(context),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                      padding: EdgeInsets.symmetric(
+                          vertical: Sizes.responsiveHorizontalSpace(context),
+                          horizontal: Sizes.responsiveMdSm(context)),
+                    ),
+                    onPressed: () async {
+                      await _saveKeySkills(context);
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => ProfileScreen()));
+                    },
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.primary, width: 0.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                      padding: EdgeInsets.symmetric(
+                          vertical: Sizes.responsiveSm(context),
+                          horizontal: Sizes.responsiveMdSm(context)),
+                    ),
+                    onPressed: () async {
+                      await _saveKeySkills(context);
+                      Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => AddEducation()));
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                         Text(
+                          'Save & Next',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Icon(
+                          Icons.keyboard_double_arrow_right,
+                          size: 15,
                           color: AppColors.primary,
                         ),
-                      ),
-                      SizedBox(
-                        width: Sizes.responsiveXs(context),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_ios_sharp,
-                        size: 11,
-                        color: AppColors.primary,
-                      )
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+

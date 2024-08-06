@@ -1,99 +1,102 @@
 import 'package:flutter/material.dart';
-import 'package:hiremi_version_two/API_Integration/Add%20Projects/apiServices.dart';
-import 'package:hiremi_version_two/AddPersonalDetails.dart';
-import 'package:hiremi_version_two/Utils/AppSizes.dart';
-import 'package:hiremi_version_two/Utils/colors.dart';
-import 'package:hiremi_version_two/widgets_mustufa/TextFieldWithTitle.dart';
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../API_Integration/Add Projects/apiServices.dart';
+import '../Edit_Profile_Section/ProfileSummary/AddProfileSummary.dart';
+import '../Utils/AppSizes.dart';
+import '../Utils/colors.dart';
+import 'TextFieldWithTitle.dart';
 
 class AddProjects extends StatefulWidget {
   const AddProjects({Key? key}) : super(key: key);
 
   @override
-  State<AddProjects> createState() => _AddProjectsState();
+  _AddProjectsState createState() => _AddProjectsState();
 }
 
 class _AddProjectsState extends State<AddProjects> {
+  final titleController = TextEditingController();
+  final clientController = TextEditingController();
+  final projectLinkController = TextEditingController();
+  final startingDateController = TextEditingController();
+  final completionDateController = TextEditingController();
+  final descriptionController = TextEditingController();
+  String? projectStatus;
   final _formKey = GlobalKey<FormState>();
-  TextEditingController titleController = TextEditingController();
-  TextEditingController clientController = TextEditingController();
-  TextEditingController projectLinkController = TextEditingController();
-  TextEditingController startingDateController = TextEditingController();
-  TextEditingController completionDateController = TextEditingController();
-  TextEditingController descriptionController = TextEditingController();
-  String projectStatus = '';
-  final AddProjectsService _apiService = AddProjectsService();
-  DateTime? _startingDate;
-  DateTime? _completionDate;
+  final AddProjectDetailsService _apiService = AddProjectDetailsService();
+  int? profileId;
 
-  Future<void> _selectDate(BuildContext context, bool isStartingDate) async {
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        if (isStartingDate) {
-          _startingDate = pickedDate;
-          startingDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
-        } else {
-          _completionDate = pickedDate;
-          completionDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
-        }
-      });
-    }
+  @override
+  void initState() {
+    super.initState();
+    _loadProjectDetails();
   }
 
-  Future<void> _saveProject() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final String? profileId = prefs.getInt('profileId')?.toString();
-      print('Profile ID: $profileId');
+  Future<void> _loadProjectDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    profileId = prefs.getInt('profileId');
+    final project = await _apiService.getProjectDetails();
+    setState(() {
+      titleController.text = project['project_title'] ?? '';
+      clientController.text = project['client'] ?? '';
+      projectLinkController.text = project['link'] ?? '';
+      startingDateController.text = project['start_date'] ?? '';
+      completionDateController.text = project['end_date'] ?? '';
+      descriptionController.text = project['description'] ?? '';
+      projectStatus = project['status'] ?? '';
+    });
+  }
 
-      if (profileId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile ID not found')),
-        );
-        return;
-      }
-
-      // Ensure the link includes 'http://'
-      String link = projectLinkController.text;
-      if (!link.startsWith('http://') && !link.startsWith('https://')) {
-        link = 'http://' + link;
-      }
-
+  Future<bool> _saveProject() async {
+    if (_formKey.currentState!.validate()) {
       final details = {
-        "project_title": titleController.text,
-        "client": clientController.text,
-        "link": link,
-        "start_date": startingDateController.text,
-        "status": projectStatus,
-        "end_date": projectStatus == 'Completed' ? completionDateController.text : null,
-        "description": descriptionController.text,
-        "profile": profileId,
+        'project_title': titleController.text,
+        'client': clientController.text,
+        'link': projectLinkController.text,
+        'start_date': startingDateController.text,
+        'end_date': completionDateController.text,
+        'description': descriptionController.text,
+        'status': projectStatus ?? '',
       };
-      print(details);
 
-      final success = await _apiService.addProject(details);
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Project details added successfully')),
-        );
+      if (profileId != null) {
+        final success = await _apiService.addOrUpdateProjectDetails(details, profileId!);
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Project details saved successfully')),
+          );
+          return true;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to save project details')),
+          );
+          return false;
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add project details')),
+          const SnackBar(content: Text('Profile ID not found')),
         );
+        return false;
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all required fields')),
-      );
+    }
+    return false;
+  }
+
+  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStartDate) {
+          startingDateController.text = picked.toIso8601String().split('T').first;
+        } else {
+          completionDateController.text = picked.toIso8601String().split('T').first;
+        }
+      });
     }
   }
 
@@ -103,15 +106,16 @@ class _AddProjectsState extends State<AddProjects> {
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text('Add Project'),
+        title: const Text('Add Project'),
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.only(
-              top: Sizes.responsiveXl(context),
-              right: Sizes.responsiveDefaultSpace(context),
-              bottom: kToolbarHeight,
-              left: Sizes.responsiveDefaultSpace(context)),
+            top: Sizes.responsiveXl(context),
+            right: Sizes.responsiveDefaultSpace(context),
+            bottom: kToolbarHeight,
+            left: Sizes.responsiveDefaultSpace(context),
+          ),
           child: Form(
             key: _formKey,
             child: Column(
@@ -298,24 +302,28 @@ class _AddProjectsState extends State<AddProjects> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(Sizes.radiusSm)),
-                        padding: EdgeInsets.symmetric(
-                            vertical: Sizes.responsiveHorizontalSpace(context),
-                            horizontal: Sizes.responsiveMdSm(context)),
-                      ),
-                      onPressed: _saveProject,
-                      child: const Text(
-                        'Save',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.white,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                          padding: EdgeInsets.symmetric(
+                              vertical: Sizes.responsiveHorizontalSpace(context),
+                              horizontal: Sizes.responsiveMdSm(context)),
                         ),
-                      ),
-                    ),
+                        onPressed: () async {
+                          bool success = await _saveProject();
+                          if (success) {
+                            Navigator.of(context).pop(); // Navigate back to the previous screen
+                          }
+                        },
+                        child: const Text(
+                          'Save',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.white,
+                          ),
+                        )),
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: AppColors.primary, width: 0.5),
@@ -325,11 +333,12 @@ class _AddProjectsState extends State<AddProjects> {
                             vertical: Sizes.responsiveSm(context),
                             horizontal: Sizes.responsiveMdSm(context)),
                       ),
-                      onPressed: () {
-                        _saveProject().then((_) {
+                      onPressed: () async {
+                        bool success = await _saveProject();
+                        if (success) {
                           Navigator.of(context).push(MaterialPageRoute(
-                              builder: (ctx) => const AddPersonalDetails()));
-                        });
+                              builder: (ctx) => AddProfileSummary()));
+                        }
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,

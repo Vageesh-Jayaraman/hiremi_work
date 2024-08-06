@@ -1,8 +1,11 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hiremi_version_two/Utils/AppSizes.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
 import '../../API_Integration/Add Experience/apiServices.dart';
+import '../../Profile_Screen.dart';
 import '../widgets/CustomTextField.dart';
 import 'package:intl/intl.dart';
 
@@ -25,6 +28,12 @@ class _AddExperienceState extends State<AddExperience> {
   DateTime? _selectedDate;
   final _formKey = GlobalKey<FormState>();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadExperienceDetails();
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -37,6 +46,33 @@ class _AddExperienceState extends State<AddExperience> {
       setState(() {
         _selectedDate = pickedDate;
         joiningDateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+      });
+    }
+  }
+
+  Future<void> _loadExperienceDetails() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final int? profileId = prefs.getInt('profileId');
+
+    if (profileId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profile ID not found')),
+      );
+      return;
+    }
+
+    final details = await _apiService.getExperienceDetails();
+
+    if (details.isNotEmpty) {
+      final firstDetail = details.first;
+      setState(() {
+        experience = firstDetail["work_experience"] ?? '';
+        environment = firstDetail["work_environment"] ?? '';
+        organizationController.text = firstDetail["company_name"] ?? '';
+        jobTitleController.text = firstDetail["job_title"] ?? '';
+        skillSetController.text = firstDetail["skill_used"] ?? '';
+        joiningDateController.text = firstDetail["start_date"] ?? '';
+        currentCompany = firstDetail["current_company"] ?? '';
       });
     }
   }
@@ -424,6 +460,7 @@ class _AddExperienceState extends State<AddExperience> {
                     return null;
                   },
                 ),
+                SizedBox(width: Sizes.responsiveSm(context)),
               ],
             ),
             Column(
@@ -506,9 +543,69 @@ class _AddExperienceState extends State<AddExperience> {
               ],
             ),
             SizedBox(height: Sizes.responsiveMd(context)),
-            ElevatedButton(
-              onPressed: _saveExperience,
-              child: Text('Save Experience'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                    padding: EdgeInsets.symmetric(
+                        vertical: Sizes.responsiveHorizontalSpace(context),
+                        horizontal: Sizes.responsiveMdSm(context)),
+                  ),
+                  onPressed: () async {
+                    await _saveExperience();
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => ProfileScreen()));
+                  },
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppColors.primary, width: 0.5),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                    padding: EdgeInsets.symmetric(
+                        vertical: Sizes.responsiveSm(context),
+                        horizontal: Sizes.responsiveMdSm(context)),
+                  ),
+                  onPressed: () async {
+                    await _saveExperience();
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => AddExperience()));
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Save & Next',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      SizedBox(
+                        width: Sizes.responsiveXs(context),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_ios_sharp,
+                        size: 11,
+                        color: AppColors.primary,
+                      )
+                    ],
+                  ),
+                ),
+              ],
             ),
           ]),
         ),

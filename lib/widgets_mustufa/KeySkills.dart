@@ -39,8 +39,10 @@ class _KeySkillsState extends State<KeySkills> {
   Widget build(BuildContext context) {
     return OutlinedContainer(
       title: 'Key Skills',
-      onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (context) => AddKeySkills())),
+      onTap: () async {
+        await Navigator.of(context).push(MaterialPageRoute(builder: (context) => AddKeySkills()));
+        await _loadKeySkills(); // Reload skills after returning from AddKeySkills screen
+      },
       isTrue: isValid(),
       child: Wrap(
         runSpacing: 10,

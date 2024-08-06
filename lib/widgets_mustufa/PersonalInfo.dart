@@ -13,7 +13,18 @@ class PersonalInfo extends StatefulWidget {
 }
 
 class _PersonalInfoState extends State<PersonalInfo> {
-  Map<String, String> personalDetails = {};
+  Map<String, String> personalDetails = {
+    'gender': 'N/A',
+    'marital_status': 'N/A',
+    'home_town': 'N/A',
+    'pincode': 'N/A',
+    'local_address': 'N/A',
+    'permanent_address': 'N/A',
+    'date_of_birth': 'N/A',
+    'ability': 'N/A',
+    'category': 'N/A',
+    'profile': 'N/A'
+  };
 
   @override
   void initState() {
@@ -24,11 +35,20 @@ class _PersonalInfoState extends State<PersonalInfo> {
   Future<void> _loadPersonalDetails() async {
     final service = AddPersonalDetailsService();
     final details = await service.getPersonalDetails();
-    if (details.isNotEmpty) {
-      setState(() {
-        personalDetails = details; // Assuming there's only one set of details
-      });
-    }
+    setState(() {
+      personalDetails = {
+        'gender': details['gender'] ?? 'N/A',
+        'marital_status': details['marital_status'] ?? 'N/A',
+        'home_town': details['home_town']?.isEmpty ?? true ? 'N/A' : details['home_town'] ?? 'N/A',
+        'pincode': details['pincode']?.toString() ?? 'N/A',
+        'local_address': details['local_address']?.isEmpty ?? true ? 'N/A' : details['local_address'] ?? 'N/A',
+        'permanent_address': details['permanent_address']?.isEmpty ?? true ? 'N/A' : details['permanent_address'] ?? 'N/A',
+        'date_of_birth': details['date_of_birth'] ?? 'N/A',
+        'ability': details['ability'] ?? 'N/A',
+        'category': details['category']?.isEmpty ?? true ? 'N/A' : details['category'] ?? 'N/A',
+        'profile': details['profile']?.toString() ?? 'N/A',
+      };
+    });
   }
 
   @override
@@ -36,14 +56,22 @@ class _PersonalInfoState extends State<PersonalInfo> {
     bool hasDetails = personalDetails.isNotEmpty;
 
     return OutlinedContainer(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => const AddPersonalDetails())),
+      onTap: () async {
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const AddPersonalDetails()),
+        );
+        if (result == true) {
+          // Refresh the details if the result indicates success
+          _loadPersonalDetails();
+        }
+      },
       title: 'Personal Details',
       isTrue: hasDetails,
       child: hasDetails
           ? Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
           PersonalInfoChild(
             title: 'Gender',
             subtitle: personalDetails['gender'] ?? 'N/A',

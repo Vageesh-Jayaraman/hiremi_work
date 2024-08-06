@@ -1,10 +1,10 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:hiremi_version_two/Custom_Widget/CustomContainer/OutlinedButton.dart';
-import 'package:hiremi_version_two/Custom_Widget/RoundedContainer/roundedContainer.dart';
-import 'package:hiremi_version_two/Utils/AppSizes.dart';
-import 'package:hiremi_version_two/Utils/colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../API_Integration/Add Links/apiServices.dart';
+import '../Custom_Widget/CustomContainer/OutlinedButton.dart';
+import '../Utils/AppSizes.dart';
+import '../Utils/colors.dart'; // Import your service class
 
 class PersonalLinks extends StatefulWidget {
   const PersonalLinks({Key? key}) : super(key: key);
@@ -24,31 +24,130 @@ class _PersonalLinksState extends State<PersonalLinks> {
   ];
   String _selectedPlatform = 'LinkedIn';
   final TextEditingController _linkController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  final AddPersonalLinksService _service = AddPersonalLinksService(); // Initialize your service class
+
+  Map<String, String> _existingLinks = {
+    'LinkedIn': '',
+    'GitHub': '',
+    'Portfolio': '',
+    'Other': '',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPersonalLinks();
+  }
+
+  Future<void> _loadPersonalLinks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final profileId = prefs.getInt('profileId');
+    if (profileId != null) {
+      final links = await _service.getPersonalLinks();
+      setState(() {
+        for (var link in links) {
+          if (link.containsKey('linkedin_url')) {
+            _existingLinks['LinkedIn'] = link['linkedin_url'] ?? '';
+          }
+          if (link.containsKey('github_url')) {
+            _existingLinks['GitHub'] = link['github_url'] ?? '';
+          }
+          if (link.containsKey('Portfolio')) {
+            _existingLinks['Portfolio'] = link['Portfolio'] ?? '';
+          }
+          if (link.containsKey('Others')) {
+            _existingLinks['Other'] = link['Others'] ?? '';
+          }
+        }
+        _linkController.text = _existingLinks[_selectedPlatform] ?? '';
+      });
+    } else {
+      print('Profile ID not found in SharedPreferences.');
+    }
+  }
+
+  Future<void> _savePersonalLink() async {
+    if (_formKey.currentState!.validate()) {
+      final link = _linkController.text;
+      final prefs = await SharedPreferences.getInstance();
+      final profileId = prefs.getInt('profileId');
+      if (profileId != null) {
+        final details = {
+          'linkedin_url': _existingLinks['LinkedIn'] ?? '',
+          'github_url': _existingLinks['GitHub'] ?? '',
+          'Portfolio': _existingLinks['Portfolio'] ?? '',
+          'Others': _existingLinks['Other'] ?? '',
+          'profile': profileId.toString(),
+        };
+
+        switch (_selectedPlatform) {
+          case 'LinkedIn':
+            details['linkedin_url'] = link;
+            break;
+          case 'GitHub':
+            details['github_url'] = link;
+            break;
+          case 'Portfolio':
+            details['Portfolio'] = link;
+            break;
+          case 'Other':
+            details['Others'] = link;
+            break;
+          default:
+            break;
+        }
+
+        final success = await _service.addPersonalLinks(details);
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Link added successfully!')),
+          );
+          setState(() {
+            _existingLinks[_selectedPlatform] = link;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to add link.')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile ID not found')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return OutlinedContainer(
       showEdit: false,
       title: 'Add Links',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PersonalLinksChild(
-            platforms: _platforms,
-            selectedPlatform: _selectedPlatform,
-            onPlatformChanged: (String? newValue) {
-              setState(() {
-                _selectedPlatform = newValue!;
-              });
-            },
-            linkController: _linkController,
-          ),
-          SizedBox(
-            height: Sizes.responsiveMd(context),
-          ),
-          SizedBox(
-            height: Sizes.responsiveLg(context) * 1.06,
-            child: ElevatedButton(
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PersonalLinksChild(
+              platforms: _platforms,
+              selectedPlatform: _selectedPlatform,
+              onPlatformChanged: (String? newValue) {
+                setState(() {
+                  _selectedPlatform = newValue!;
+                  _linkController.text = _existingLinks[_selectedPlatform] ?? '';
+                });
+              },
+              linkController: _linkController,
+            ),
+            SizedBox(
+              height: Sizes.responsiveMd(context),
+            ),
+            SizedBox(
+              height: Sizes.responsiveLg(context) * 1.06,
+              child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     elevation: 0,
@@ -58,9 +157,7 @@ class _PersonalLinksState extends State<PersonalLinks> {
                     padding: EdgeInsets.symmetric(
                         vertical: Sizes.responsiveVerticalSpace(context),
                         horizontal: Sizes.responsiveMdSm(context))),
-                onPressed: () {
-                  // Add your onPressed logic here
-                },
+                onPressed: _savePersonalLink,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
@@ -77,9 +174,11 @@ class _PersonalLinksState extends State<PersonalLinks> {
                       color: AppColors.white,
                     )
                   ],
-                )),
-          )
-        ],
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -107,7 +206,7 @@ class PersonalLinksChild extends StatelessWidget {
           flex: 2,
           child: Container(
             width: Sizes.responsiveSm(context) * 25,
-            height: Sizes.responsiveSm(context)*5 ,
+            height: Sizes.responsiveSm(context) * 5,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(2),
@@ -147,7 +246,7 @@ class PersonalLinksChild extends StatelessWidget {
         ),
         Container(
           width: Sizes.responsiveSm(context) * 25,
-          height: Sizes.responsiveSm(context)*5 ,
+          height: Sizes.responsiveSm(context) * 5,
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -162,7 +261,7 @@ class PersonalLinksChild extends StatelessWidget {
             padding: EdgeInsets.symmetric(
               horizontal: Sizes.responsiveSm(context) * 1.15,
             ),
-            child: TextField(
+            child: TextFormField(
               controller: linkController,
               decoration: InputDecoration(
                 hintText: 'Paste Link',
@@ -178,6 +277,12 @@ class PersonalLinksChild extends StatelessWidget {
                 fontWeight: FontWeight.w500,
                 color: Colors.blue,
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a link';
+                }
+                return null;
+              },
             ),
           ),
         ),

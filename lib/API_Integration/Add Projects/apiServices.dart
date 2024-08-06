@@ -2,106 +2,164 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class AddProjectsService {
-  final String url = 'http://13.127.81.177:8000/api/projects/';
+class AddProjectDetailsService {
+  final String baseUrl = 'http://13.127.81.177:8000/api/projects/';
 
-  Future<bool> addProject(Map<String, dynamic> details) async {
+  // Method to add or update project details based on the presence of the profileId and detailId
+  Future<bool> addOrUpdateProjectDetails(Map<String, String> details, int profileId) async {
+    details['profile'] = profileId.toString(); // Ensure profileId is included
+    final int? detailId = await _getDetailId(profileId);
+    if (detailId != null) {
+      return await updateProjectDetails(detailId, details);
+    } else {
+      return await addProjectDetails(details);
+    }
+  }
+
+  // Method to add new project details
+  Future<bool> addProjectDetails(Map<String, String> details) async {
     try {
       final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        Uri.parse(baseUrl),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode(details),
       );
 
       if (response.statusCode == 201) {
-        await _storeProjectLocally(details);
+        await _storeProjectDetailsLocally(details);
         return true;
       } else {
-        print('Failed to add project: ${response.body}');
+        print('Failed to add project details. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('Error occurred while adding project: $e');
+      print('Error occurred while adding project details: $e');
       return false;
     }
   }
 
-  Future<void> _storeProjectLocally(Map<String, dynamic> project) async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> existingProjects = prefs.getStringList('projects') ?? [];
-    existingProjects.add(jsonEncode(project));
-    await prefs.setStringList('projects', existingProjects);
+  // Method to update existing project details
+  Future<bool> updateProjectDetails(int detailId, Map<String, String> details) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl$detailId/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(details),
+      );
+
+      if (response.statusCode == 200) {
+        await _storeProjectDetailsLocally(details);
+        return true;
+      } else {
+        print('Failed to update project details. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error occurred while updating project details: $e');
+      return false;
+    }
   }
 
-  Future<List<Map<String, dynamic>>> getProjects() async {
+  // Method to store project details locally in SharedPreferences
+  Future<void> _storeProjectDetailsLocally(Map<String, String> details) async {
     final prefs = await SharedPreferences.getInstance();
-    final List<String>? projects = prefs.getStringList('projects');
+    await prefs.setString('projectDetails', jsonEncode(details));
+  }
+
+  // Method to get project details from either local storage or the server
+  Future<Map<String, String>> getProjectDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? details = prefs.getString('projectDetails');
     final int? profileId = prefs.getInt('profileId');
 
-    if (projects != null) {
-      try {
-        final decodedProjects = projects.map((project) {
-          final Map<String, dynamic> decodedProject = jsonDecode(project);
-          return decodedProject;
-        }).toList();
-        return _filterProjectsByProfileId(decodedProjects, profileId);
-      } catch (e) {
-        print('Error occurred while decoding projects: $e');
-        return [];
-      }
+    if (details != null) {
+      return Map<String, String>.from(jsonDecode(details));
     } else if (profileId != null) {
-      final serverProjects = await getProjectsFromServer(profileId);
-      if (serverProjects.isNotEmpty) {
-        await _storeProjectsListLocally(serverProjects);
-        return serverProjects;
+      final serverDetails = await getProjectDetailsFromServer(profileId);
+      if (serverDetails != null) {
+        await _storeProjectDetailsLocally(serverDetails);
+        return serverDetails;
       } else {
-        return [];
+        return {};
       }
     } else {
       print('Profile ID not found in SharedPreferences.');
-      return [];
+      return {};
     }
   }
 
-  Future<List<Map<String, dynamic>>> getProjectsFromServer(int profileId) async {
+  // Method to fetch project details from the server
+  Future<Map<String, String>?> getProjectDetailsFromServer(int profileId) async {
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(baseUrl));
 
       if (response.statusCode == 200) {
-        final List<dynamic> projectsList = jsonDecode(response.body);
+        final List<dynamic> detailsList = jsonDecode(response.body);
 
-        final List<Map<String, dynamic>> projects = projectsList.map((project) {
-          return Map<String, dynamic>.from(project);
-        }).toList();
+        for (var details in detailsList) {
+          final profile = details['profile'];
+          final int profileIdFromDetails = profile is String
+              ? int.tryParse(profile) ?? -1
+              : profile is int
+              ? profile
+              : -1;
 
-        return _filterProjectsByProfileId(projects, profileId);
+          if (profileIdFromDetails == profileId) {
+            final Map<String, String> projectDetails = {};
+            details.forEach((key, value) {
+              projectDetails[key] = value.toString();
+            });
+            await _storeProjectDetailsLocally(projectDetails);
+            return projectDetails;
+          }
+        }
+        return null; // No matching profileId found
       } else {
-        print('Failed to fetch projects. Status code: ${response.statusCode}');
-        return [];
+        print('Failed to fetch project details. Status code: ${response.statusCode}');
+        return null;
       }
     } catch (e) {
-      print('Error occurred while fetching projects: $e');
-      return [];
+      print('Error occurred while fetching project details: $e');
+      return null;
     }
   }
 
-  Future<void> _storeProjectsListLocally(List<Map<String, dynamic>> projectsList) async {
+  // Method to get the profile ID from local storage
+  Future<int?> _getProfileId() async {
     final prefs = await SharedPreferences.getInstance();
-    final encodedProjectsList = projectsList.map((project) => jsonEncode(project)).toList();
-    await prefs.setStringList('projects', encodedProjectsList);
+    return prefs.getInt('profileId');
   }
 
-  List<Map<String, dynamic>> _filterProjectsByProfileId(List<Map<String, dynamic>> projectsList, int? profileId) {
-    if (profileId == null) {
-      print('Profile ID is null.');
-      return [];
+  // Method to get the detail ID from the server based on profile ID
+  Future<int?> _getDetailId(int profileId) async {
+    try {
+      final response = await http.get(Uri.parse(baseUrl));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> detailsList = jsonDecode(response.body);
+
+        for (var details in detailsList) {
+          final profile = details['profile'];
+          final int profileIdFromDetails = profile is String
+              ? int.tryParse(profile) ?? -1
+              : profile is int
+              ? profile
+              : -1;
+
+          if (profileIdFromDetails == profileId) {
+            return details['id'];
+          }
+        }
+        return null; // No matching profileId found
+      } else {
+        print('Failed to fetch project details. Status code: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error occurred while fetching project details: $e');
+      return null;
     }
-    return projectsList.where((project) {
-      final profile = project['profile'];
-      final int profileIdFromProject = profile != null ? int.tryParse(profile.toString()) ?? -1 : -1;
-      return profileIdFromProject == profileId;
-    }).toList();
   }
 }

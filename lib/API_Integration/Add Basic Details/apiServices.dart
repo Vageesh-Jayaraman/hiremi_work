@@ -3,12 +3,27 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddBasicDetailsService {
-  final String url = 'http://13.127.81.177:8000/api/basic-details/';
+  final String baseUrl = 'http://13.127.81.177:8000/api/basic-details/';
+
+  Future<bool> addOrUpdateBasicDetails(Map<String, String> details) async {
+    final int? profileId = await _getProfileId();
+    if (profileId != null) {
+      final int? detailId = await _getDetailId(profileId);
+      if (detailId != null) {
+        return await updateBasicDetails(detailId, details);
+      } else {
+        return await addBasicDetails(details);
+      }
+    } else {
+      print('Profile ID not found in SharedPreferences.');
+      return false;
+    }
+  }
 
   Future<bool> addBasicDetails(Map<String, String> details) async {
     try {
       final response = await http.post(
-        Uri.parse(url),
+        Uri.parse(baseUrl),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -25,6 +40,30 @@ class AddBasicDetailsService {
       }
     } catch (e) {
       print('Error occurred while adding details: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateBasicDetails(int detailId, Map<String, String> details) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl$detailId/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(details),
+      );
+
+      if (response.statusCode == 200) {
+        await _storeBasicDetailsLocally(details);
+        return true;
+      } else {
+        print('Failed to update details. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error occurred while updating details: $e');
       return false;
     }
   }
@@ -57,7 +96,7 @@ class AddBasicDetailsService {
 
   Future<Map<String, String>?> getBasicDetailsFromServer(int profileId) async {
     try {
-      final response = await http.get(Uri.parse('$url'));
+      final response = await http.get(Uri.parse(baseUrl));
 
       if (response.statusCode == 200) {
         final List<dynamic> detailsList = jsonDecode(response.body);
@@ -86,6 +125,36 @@ class AddBasicDetailsService {
       }
     } catch (e) {
       print('Error occurred while fetching details: $e');
+      return null;
+    }
+  }
+
+  Future<int?> _getProfileId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('profileId');
+  }
+
+  Future<int?> _getDetailId(int profileId) async {
+    final response = await http.get(Uri.parse(baseUrl));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> detailsList = jsonDecode(response.body);
+
+      for (var details in detailsList) {
+        final profile = details['profile'];
+        final int profileIdFromDetails = profile is String
+            ? int.tryParse(profile) ?? -1
+            : profile is int
+            ? profile
+            : -1;
+
+        if (profileIdFromDetails == profileId) {
+          return details['id'];
+        }
+      }
+      return null; // No matching profileId found
+    } else {
+      print('Failed to fetch details. Status code: ${response.statusCode}');
       return null;
     }
   }

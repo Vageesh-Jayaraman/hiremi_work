@@ -7,7 +7,6 @@ import 'package:hiremi_version_two/Notofication_screen.dart';
 import 'package:hiremi_version_two/Profile_Screen.dart';
 import 'package:hiremi_version_two/Utils/AppSizes.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
-
 import '../../API_Integration/Add Basic Details/apiServices.dart';
 
 class AddBasicDetails extends StatefulWidget {
@@ -19,15 +18,41 @@ class AddBasicDetails extends StatefulWidget {
 
 class _AddBasicDetailsState extends State<AddBasicDetails> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController cityController = TextEditingController();
-  final TextEditingController stateController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController whatsappController = TextEditingController();
-  final TextEditingController looking_forController = TextEditingController();
+  late TextEditingController cityController;
+  late TextEditingController stateController;
+  late TextEditingController emailController;
+  late TextEditingController phoneController;
+  late TextEditingController whatsappController;
+  late TextEditingController looking_forController;
   String profileId = '';
 
   AddBasicDetailsService _apiService = AddBasicDetailsService();
+
+  @override
+  void initState() {
+    super.initState();
+    cityController = TextEditingController();
+    stateController = TextEditingController();
+    emailController = TextEditingController();
+    phoneController = TextEditingController();
+    whatsappController = TextEditingController();
+    looking_forController = TextEditingController();
+    _loadBasicDetails();
+  }
+
+  Future<void> _loadBasicDetails() async {
+    final service = AddBasicDetailsService();
+    final details = await service.getBasicDetails();
+    print(details);
+    setState(() {
+      looking_forController.text = details['looking_for'] ?? '';
+      cityController.text = details['city'] ?? '';
+      stateController.text = details['state'] ?? '';
+      emailController.text = details['email'] ?? '';
+      phoneController.text = details['phone_number'] ?? '';
+      whatsappController.text = details['whatsapp_number'] ?? '';
+    });
+  }
 
   @override
   void dispose() {
@@ -71,19 +96,24 @@ class _AddBasicDetailsState extends State<AddBasicDetails> {
       };
       print(details);
 
-      final success = await _apiService.addBasicDetails(details);
+      final success = await _apiService.addOrUpdateBasicDetails(details);
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Details added successfully')),
+          SnackBar(content: Text('Details added/updated successfully')),
         );
+        Navigator.pop(context, true); // Return true to indicate success
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add details')),
+          SnackBar(content: Text('Failed to add/update details')),
         );
       }
+    } else {
+      setState(() {});
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -422,8 +452,6 @@ class _AddBasicDetailsState extends State<AddBasicDetails> {
                           onPressed: () {
                             if (isAllFieldFilled()) {
                               _saveBasicDetails();
-                              Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (ctx) => ProfileScreen()));
                             }
                           },
                           child: const Text(
@@ -435,43 +463,45 @@ class _AddBasicDetailsState extends State<AddBasicDetails> {
                             ),
                           )),
                       OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.primary, width: 0.5),
-                            shape: RoundedRectangleBorder(
-                                borderRadius:
-                                BorderRadius.circular(Sizes.radiusSm)),
-                            padding: EdgeInsets.symmetric(
-                                vertical: Sizes.responsiveSm(context),
-                                horizontal: Sizes.responsiveMdSm(context)),
-                          ),
-                          onPressed: () {
-                            if (isAllFieldFilled()) {
-                              _saveBasicDetails();
-                              Navigator.of(context).push(MaterialPageRoute(
-                                  builder: (ctx) => AddProfileSummary()));
-                            }
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Save & Next',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              SizedBox(
-                                width: Sizes.responsiveXs(context),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_ios_sharp,
-                                size: 11,
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.primary, width: 0.5),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                              BorderRadius.circular(Sizes.radiusSm)),
+                          padding: EdgeInsets.symmetric(
+                              vertical: Sizes.responsiveSm(context),
+                              horizontal: Sizes.responsiveMdSm(context)),
+                        ),
+                        onPressed: () async {
+                          if (isAllFieldFilled()) {
+                            await _saveBasicDetails();
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (ctx) => AddProfileSummary()));
+                          }
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Save & Next',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                                 color: AppColors.primary,
-                              )
-                            ],
-                          )),
+                              ),
+                            ),
+                            SizedBox(
+                              width: Sizes.responsiveXs(context),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_sharp,
+                              size: 11,
+                              color: AppColors.primary,
+                            )
+                          ],
+                        ),
+                      ),
+
                     ],
                   ),
                 ]),

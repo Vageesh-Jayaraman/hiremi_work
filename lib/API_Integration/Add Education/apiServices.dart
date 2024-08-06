@@ -3,12 +3,49 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AddEducationService {
-  final String url = 'http://13.127.81.177:8000/api/education/';
+  final String baseUrl = 'http://13.127.81.177:8000/api/education/';
 
-  Future<bool> addEducation(Map<String, dynamic> details) async {
+  Future<bool> addOrUpdateEducation(Map<String, dynamic> details) async {
+    try {
+      final profileId = details['profile'];
+      final existingId = await _getExistingEducationId(profileId);
+
+      if (existingId != null) {
+        // Update existing record
+        return await _updateEducation(existingId, details);
+      } else {
+        // Add new record
+        return await _addEducation(details);
+      }
+    } catch (e) {
+      print('Error occurred while adding or updating education details: $e');
+      return false;
+    }
+  }
+
+  Future<int?> _getExistingEducationId(String profileId) async {
+    try {
+      final response = await http.get(Uri.parse(baseUrl));
+      if (response.statusCode == 200) {
+        final List<dynamic> detailsList = jsonDecode(response.body);
+        for (var detail in detailsList) {
+          if (detail['profile'].toString() == profileId) {
+            return detail['id'];
+          }
+        }
+      } else {
+        print('Failed to fetch education details. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error occurred while fetching education details: $e');
+    }
+    return null;
+  }
+
+  Future<bool> _addEducation(Map<String, dynamic> details) async {
     try {
       final response = await http.post(
-        Uri.parse(url),
+        Uri.parse(baseUrl),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -29,11 +66,48 @@ class AddEducationService {
     }
   }
 
+  Future<bool> _updateEducation(int id, Map<String, dynamic> details) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl$id/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(details),
+      );
+
+      if (response.statusCode == 200) {
+        await _updateEducationDetailsLocally(details);
+        return true;
+      } else {
+        print('Failed to update education details. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error occurred while updating education details: $e');
+      return false;
+    }
+  }
+
   Future<void> _storeEducationDetailsLocally(Map<String, dynamic> details) async {
     final prefs = await SharedPreferences.getInstance();
     final List<String> existingDetails = prefs.getStringList('educationDetails') ?? [];
     existingDetails.add(jsonEncode(details));
     await prefs.setStringList('educationDetails', existingDetails);
+  }
+
+  Future<void> _updateEducationDetailsLocally(Map<String, dynamic> details) async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> existingDetails = prefs.getStringList('educationDetails') ?? [];
+    final updatedDetails = existingDetails.map((detail) {
+      final Map<String, dynamic> decodedDetail = jsonDecode(detail);
+      if (decodedDetail['profile'] == details['profile']) {
+        return jsonEncode(details);
+      }
+      return detail;
+    }).toList();
+    await prefs.setStringList('educationDetails', updatedDetails);
   }
 
   Future<List<Map<String, String>>> getEducationDetails() async {
@@ -74,7 +148,7 @@ class AddEducationService {
 
   Future<List<Map<String, String>>> getEducationDetailsFromServer(int profileId) async {
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(baseUrl));
 
       if (response.statusCode == 200) {
         final List<dynamic> detailsList = jsonDecode(response.body);

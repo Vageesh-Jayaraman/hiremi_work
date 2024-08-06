@@ -7,6 +7,32 @@ class AddExperienceService {
 
   Future<bool> addExperience(Map<String, dynamic> details) async {
     try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final int? profileId = prefs.getInt('profileId');
+
+      if (profileId == null) {
+        print('Profile ID not found in SharedPreferences.');
+        return false;
+      }
+
+      // Check for existing experience
+      final existingDetails = await getExperienceDetailsFromServer(profileId);
+      if (existingDetails.isNotEmpty) {
+        // Assuming there's only one experience per profile
+        final existingDetail = existingDetails.first;
+        final int experienceId = int.parse(existingDetail['id']!);
+        return await updateExperience(experienceId, details);
+      } else {
+        return await _addNewExperience(details);
+      }
+    } catch (e) {
+      print('Error occurred while adding/updating experience details: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _addNewExperience(Map<String, dynamic> details) async {
+    try {
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -29,10 +55,49 @@ class AddExperienceService {
     }
   }
 
+  Future<bool> updateExperience(int id, Map<String, dynamic> details) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$url$id/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(details),
+      );
+
+      if (response.statusCode == 200) {
+        await _updateExperienceDetailsLocally(details);
+        return true;
+      } else {
+        print('Failed to update experience details. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Error occurred while updating experience details: $e');
+      return false;
+    }
+  }
+
   Future<void> _storeExperienceDetailsLocally(Map<String, dynamic> details) async {
     final prefs = await SharedPreferences.getInstance();
     final List<String> existingDetails = prefs.getStringList('experienceDetails') ?? [];
     existingDetails.add(jsonEncode(details));
+    await prefs.setStringList('experienceDetails', existingDetails);
+  }
+
+  Future<void> _updateExperienceDetailsLocally(Map<String, dynamic> details) async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> existingDetails = prefs.getStringList('experienceDetails') ?? [];
+
+    // Find and update the existing detail in the local storage
+    for (int i = 0; i < existingDetails.length; i++) {
+      final Map<String, dynamic> existingDetail = jsonDecode(existingDetails[i]);
+      if (existingDetail['profile'] == details['profile']) {
+        existingDetails[i] = jsonEncode(details);
+        break;
+      }
+    }
     await prefs.setStringList('experienceDetails', existingDetails);
   }
 

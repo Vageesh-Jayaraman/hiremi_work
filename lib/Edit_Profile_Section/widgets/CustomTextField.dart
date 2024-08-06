@@ -71,6 +71,10 @@ class CustomTextField extends StatelessWidget {
             width: 0.37,
           ),
         ),
+        errorStyle: TextStyle(
+          fontSize: 12,
+          color: Colors.red,
+        ),
       ),
     );
   }

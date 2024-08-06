@@ -4,7 +4,6 @@ import 'package:hiremi_version_two/Custom_Widget/RoundedContainer/roundedContain
 import 'package:hiremi_version_two/Utils/AppSizes.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
 import 'package:hiremi_version_two/widgets_mustufa/AddProjects.dart';
-
 import '../API_Integration/Add Projects/apiServices.dart';
 
 class Projects extends StatefulWidget {
@@ -15,7 +14,7 @@ class Projects extends StatefulWidget {
 }
 
 class _ProjectsState extends State<Projects> {
-  List<Map<String, dynamic>> projects = [];
+  List<Map<String, String>> projects = [];
 
   @override
   void initState() {
@@ -24,12 +23,15 @@ class _ProjectsState extends State<Projects> {
   }
 
   Future<void> _loadProjects() async {
-    final service = AddProjectsService();
-    final loadedProjects = await service.getProjects();
-    setState(() {
-      projects = loadedProjects;
-      print(projects);
-    });
+    final service = AddProjectDetailsService();
+    try {
+      final projectDetails = await service.getProjectDetails();
+      setState(() {
+        projects = [projectDetails];
+      });
+    } catch (error) {
+      print('Failed to load projects: $error');
+    }
   }
 
   @override
@@ -41,9 +43,7 @@ class _ProjectsState extends State<Projects> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: projects.isEmpty
-            ? [
-          const Text('No projects available', style: TextStyle(fontSize: 12, color: Colors.grey)),
-        ]
+            ? [const Text('No projects available', style: TextStyle(fontSize: 12, color: Colors.grey))]
             : projects.map((project) {
           return ProjectsChild(
             title: project['project_title'] ?? '',
@@ -77,23 +77,17 @@ class ProjectsChild extends StatelessWidget {
           title,
           style: const TextStyle(fontSize: 9.0, fontWeight: FontWeight.w500, color: Colors.black),
         ),
-        SizedBox(
-          height: Sizes.responsiveXs(context),
-        ),
+        SizedBox(height: Sizes.responsiveXs(context)),
         Text(
           duration,
           style: TextStyle(fontSize: 6.0, fontWeight: FontWeight.w500, color: AppColors.secondaryText),
         ),
-        SizedBox(
-          height: Sizes.responsiveSm(context),
-        ),
+        SizedBox(height: Sizes.responsiveSm(context)),
         Text(
           description,
           style: const TextStyle(fontSize: 9.0, fontWeight: FontWeight.w500, color: Colors.black),
         ),
-        SizedBox(
-          height: Sizes.responsiveSm(context),
-        ),
+        SizedBox(height: Sizes.responsiveSm(context)),
         RoundedContainer(
           color: Colors.blue[100],
           radius: 2,
@@ -101,29 +95,22 @@ class ProjectsChild extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.attach_file,
-                color: Colors.blue,
-                size: 8,
-              ),
-              SizedBox(
-                width: Sizes.responsiveXxs(context),
-              ),
+              const Icon(Icons.attach_file, color: Colors.blue, size: 8),
+              SizedBox(width: Sizes.responsiveXxs(context)),
               Text(
                 link,
                 style: const TextStyle(
-                    decoration: TextDecoration.underline,
-                    decorationColor: Colors.blue,
-                    fontWeight: FontWeight.w400,
-                    fontSize: 8,
-                    color: Colors.blue),
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.blue,
+                  fontWeight: FontWeight.w400,
+                  fontSize: 8,
+                  color: Colors.blue,
+                ),
               ),
             ],
           ),
         ),
-        SizedBox(
-          height: Sizes.responsiveSm(context),
-        ),
+        SizedBox(height: Sizes.responsiveSm(context)),
         Divider(
           height: 0.25,
           thickness: 0.25,

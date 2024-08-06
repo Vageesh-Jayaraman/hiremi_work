@@ -8,9 +8,14 @@ import 'package:hiremi_version_two/Utils/colors.dart';
 
 import '../../API_Integration/Add Education/apiServices.dart';
 
-class AddEducation extends StatelessWidget {
+class AddEducation extends StatefulWidget {
   AddEducation({Key? key}) : super(key: key);
 
+  @override
+  _AddEducationState createState() => _AddEducationState();
+}
+
+class _AddEducationState extends State<AddEducation> {
   final educationController = TextEditingController();
   final courseController = TextEditingController();
   final yearController = TextEditingController();
@@ -19,12 +24,38 @@ class AddEducation extends StatelessWidget {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String profileId = "";
 
+  @override
+  void initState() {
+    super.initState();
+    _loadEducationDetails();
+  }
+
+  Future<void> _loadEducationDetails() async {
+    final prefs = await SharedPreferences.getInstance();
+    final int? savedId = prefs.getInt('profileId');
+    if (savedId != null) {
+      profileId = savedId.toString();
+      final details = await _apiService.getEducationDetails();
+      final latestDetails = details.isNotEmpty ? details.first : null;
+
+      if (latestDetails != null) {
+        setState(() {
+          educationController.text = latestDetails['education'] ?? '';
+          courseController.text = latestDetails['degree'] ?? '';
+          yearController.text = latestDetails['passing_year'] ?? '';
+          marksController.text = latestDetails['marks'] ?? '';
+        });
+      }
+    } else {
+      print('Profile ID not found');
+    }
+  }
+
   Future<void> _saveEducation(BuildContext context) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Convert marks and year to integers and then to strings
     final marksText = marksController.text;
     final marks = int.tryParse(marksText.replaceAll(RegExp(r'[^\d]'), ''));
     if (marks == null) {
@@ -57,24 +88,25 @@ class AddEducation extends StatelessWidget {
     final details = {
       "education": educationController.text,
       "degree": courseController.text,
-      "marks": marks.toString(), // Convert marks to a string
-      "passing_year": year.toString(), // Convert year to a string
+      "marks": marks.toString(),
+      "passing_year": year.toString(),
       "profile": profileId,
     };
-    print(details);
 
-    final success = await _apiService.addEducation(details);
+    final success = await _apiService.addOrUpdateEducation(details);
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Education details added successfully')),
+        SnackBar(content: Text('Education details saved successfully')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add education details')),
+        SnackBar(content: Text('Failed to save education details')),
       );
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {

@@ -4,9 +4,8 @@ import 'package:hiremi_version_two/Utils/AppSizes.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
 import 'package:hiremi_version_two/widgets_mustufa/AddLanguages.dart';
 import 'package:hiremi_version_two/widgets_mustufa/TextFieldWithTitle.dart';
-import 'package:intl/intl.dart'; // Import intl package for date formatting
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'API_Integration/Add Personal Details/apiServices.dart';
 
 class AddPersonalDetails extends StatefulWidget {
@@ -30,6 +29,12 @@ class _AddPersonalDetailsState extends State<AddPersonalDetails> {
   TextEditingController nationalityController = TextEditingController();
   final AddPersonalDetailsService _apiService = AddPersonalDetailsService();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadPersonalDetails();
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -45,6 +50,25 @@ class _AddPersonalDetailsState extends State<AddPersonalDetails> {
     }
   }
 
+  Future<void> _loadPersonalDetails() async {
+    final service = AddPersonalDetailsService();
+    final details = await service.getPersonalDetails();
+    if (details.isNotEmpty) {
+      setState(() {
+        dobController.text = details['date_of_birth'] ?? '';
+        selectedGender = details['gender'] ?? '';
+        selectedMaritalStatus = details['marital_status'] ?? '';
+        nationalityController.text = details['nationality'] ?? '';
+        homeController.text = details['home_town'] ?? '';
+        pinCodeController.text = details['pincode'] ?? '';
+        localAddressController.text = details['local_address'] ?? '';
+        permanentAddressController.text = details['permanent_address'] ?? '';
+        differentlyAbled = details['ability'] ?? '';
+        categoryController.text = details['category'] ?? '';
+      });
+    }
+  }
+
   Future<void> _savePersonalDetails() async {
     if (_formKey.currentState?.validate() ?? false) {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -53,7 +77,7 @@ class _AddPersonalDetailsState extends State<AddPersonalDetails> {
 
       if (profileId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile ID not found')),
+          const SnackBar(content: Text('Profile ID not found')),
         );
         return;
       }
@@ -73,17 +97,17 @@ class _AddPersonalDetailsState extends State<AddPersonalDetails> {
       };
       print(details);
 
-      final success = await _apiService.addPersonalDetails(details);
+      final success = await _apiService.addOrUpdatePersonalDetails(details);
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Personal details added successfully')),
+          const SnackBar(content: Text('Personal details saved successfully')),
         );
         Navigator.of(context).push(MaterialPageRoute(
             builder: (ctx) => ProfileScreen()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add personal details')),
+          const SnackBar(content: Text('Failed to save personal details')),
         );
       }
     }
@@ -97,7 +121,7 @@ class _AddPersonalDetailsState extends State<AddPersonalDetails> {
 
       if (profileId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile ID not found')),
+          const SnackBar(content: Text('Profile ID not found')),
         );
         return;
       }
@@ -117,22 +141,68 @@ class _AddPersonalDetailsState extends State<AddPersonalDetails> {
       };
       print(details);
 
-      final success = await _apiService.addPersonalDetails(details);
+      final success = await _apiService.addOrUpdatePersonalDetails(details);
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Personal details added successfully')),
+          const SnackBar(content: Text('Personal details saved successfully')),
         );
         Navigator.of(context).push(MaterialPageRoute(
-            builder: (ctx) => AddLanguages()));
+            builder: (ctx) => const AddLanguages()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add personal details')),
+          const SnackBar(content: Text('Failed to save personal details')),
         );
       }
     }
   }
 
+  Widget buildRadioButtonGroup(String title, List<String> options, String groupValue, ValueChanged<String?> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+            Text(
+              '*',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: Sizes.responsiveXxs(context)),
+        Row(
+          children: options.map((option) {
+            return Row(
+              children: [
+                Radio(
+                  activeColor: Colors.blue,
+                  value: option,
+                  groupValue: groupValue,
+                  onChanged: onChanged,
+                ),
+                Text(
+                  option,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 11,
+                    color: groupValue == option ? Colors.black : AppColors.secondaryText,
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -151,353 +221,165 @@ class _AddPersonalDetailsState extends State<AddPersonalDetails> {
                 left: Sizes.responsiveDefaultSpace(context)),
             child: Form(
               key: _formKey,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text(
-                  'Personal Details',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                SizedBox(
-                  height: Sizes.responsiveMd(context),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Text(
-                          'Gender',
-                          style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          '*',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Personal Details',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  SizedBox(height: Sizes.responsiveMd(context)),
+                  buildRadioButtonGroup(
+                    'Gender',
+                    ['Male', 'Female', 'Other'],
+                    selectedGender,
+                        (value) => setState(() {
+                      selectedGender = value!;
+                    }),
+                  ),
+                  SizedBox(height: 10),
+                  buildRadioButtonGroup(
+                    'Marital Status',
+                    ['Married', 'Single'],
+                    selectedMaritalStatus,
+                        (value) => setState(() {
+                      selectedMaritalStatus = value!;
+                    }),
+                  ),
+                  SizedBox(height: 10),
+                  TextFieldWithTitle(
+                    title: 'Nationality',
+                    controller: nationalityController,
+                    hintText: 'Nationality',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your nationality';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 10),
+                  TextFieldWithTitle(
+                    title: 'Home Town',
+                    controller: homeController,
+                    hintText: 'Home Town',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your home town';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 10),
+                  TextFieldWithTitle(
+                    title: 'Pincode',
+                    controller: pinCodeController,
+                    hintText: 'Pincode',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your pincode';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 10),
+                  TextFieldWithTitle(
+                    title: 'Local Address',
+                    controller: localAddressController,
+                    hintText: 'Local Address',
+                    maxLines: 3,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your local address';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 10),
+                  TextFieldWithTitle(
+                    title: 'Permanent Address',
+                    controller: permanentAddressController,
+                    hintText: 'Permanent Address',
+                    maxLines: 3,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your permanent address';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 10),
+                  buildRadioButtonGroup(
+                    'Differently Abled',
+                    ['Yes', 'No'],
+                    differentlyAbled,
+                        (value) => setState(() {
+                      differentlyAbled = value!;
+                    }),
+                  ),
+                  SizedBox(height: 10),
+                  TextFieldWithTitle(
+                    title: 'Category',
+                    controller: categoryController,
+                    hintText: 'Category',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your category';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 10),
+                  TextFieldWithTitle(
+                    title: 'Date of Birth',
+                    controller: dobController,
+                    hintText: 'Date of Birth',
+                    suffix: IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: () => _selectDate(context),
                     ),
-                    SizedBox(height: Sizes.responsiveXxs(context),),
-                    Row(children: [
-                      Row(
-                        children: [
-                          Radio(
-                            activeColor: Colors.blue,
-                            value: 'Male',
-                            groupValue: selectedGender,
-                            onChanged: (value) => setState(() {
-                              selectedGender = value as String;
-                            }),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your date of birth';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: Sizes.responsiveSm(context)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                BorderRadius.circular(Sizes.radiusSm)),
+                            padding: EdgeInsets.symmetric(
+                                vertical: Sizes.responsiveHorizontalSpace(context),
+                                horizontal: Sizes.responsiveMdSm(context)),
                           ),
-                          Text(
-                            'Male',
+                          onPressed: _savePersonalDetails,
+                          child: const Text(
+                            'Save',
                             style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                                color: selectedGender == 'Male'
-                                    ? Colors.black
-                                    : AppColors.secondaryText),
-                          )
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Radio(
-                            activeColor: Colors.blue,
-                            value: 'Female',
-                            groupValue: selectedGender,
-                            onChanged: (value) => setState(() {
-                              selectedGender = value as String;
-                            }),
-                          ),
-                          Text(
-                            'Female',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                                color: selectedGender == 'Female'
-                                    ? Colors.black
-                                    : AppColors.secondaryText),
-                          )
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Radio(
-                            activeColor: Colors.blue,
-                            value: 'Other',
-                            groupValue: selectedGender,
-                            onChanged: (value) => setState(() {
-                              selectedGender = value as String;
-                            }),
-                          ),
-                          Text(
-                            'Other',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                                color: selectedGender == 'Other'
-                                    ? Colors.black
-                                    : AppColors.secondaryText),
-                          )
-                        ],
-                      ),
-                    ]),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Marital Status',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: Sizes.responsiveXxs(context),),
-                    Row(children: [
-                      Row(
-                        children: [
-                          Radio(
-                            activeColor: Colors.blue,
-                            value: 'Single',
-                            groupValue: selectedMaritalStatus,
-                            onChanged: (value) => setState(() {
-                              selectedMaritalStatus = value as String;
-                            }),
-                          ),
-                          Text(
-                            'Single / Unmarried',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                                color: selectedMaritalStatus ==
-                                    'Single / Unmarried'
-                                    ? Colors.black
-                                    : AppColors.secondaryText),
-                          )
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Radio(
-                            activeColor: Colors.blue,
-                            value: 'Married',
-                            groupValue: selectedMaritalStatus,
-                            onChanged: (value) => setState(() {
-                              selectedMaritalStatus = value as String;
-                            }),
-                          ),
-                          Text(
-                            'Married',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                                color: selectedMaritalStatus == 'Married'
-                                    ? Colors.black
-                                    : AppColors.secondaryText),
-                          )
-                        ],
-                      ),
-                    ]),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Differently Abled',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: Sizes.responsiveXxs(context),),
-                    Row(children: [
-                      Row(
-                        children: [
-                          Radio(
-                            activeColor: Colors.blue,
-                            value: 'Yes',
-                            groupValue: differentlyAbled,
-                            onChanged: (value) => setState(() {
-                              differentlyAbled = value as String;
-                            }),
-                          ),
-                          Text(
-                            'Yes',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                                color: differentlyAbled == 'Yes'
-                                    ? Colors.black
-                                    : AppColors.secondaryText),
-                          )
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Radio(
-                            activeColor: Colors.blue,
-                            value: 'No',
-                            groupValue: differentlyAbled,
-                            onChanged: (value) => setState(() {
-                              differentlyAbled = value as String;
-                            }),
-                          ),
-                          Text(
-                            'No',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                fontSize: 11,
-                                color: differentlyAbled == 'No'
-                                    ? Colors.black
-                                    : AppColors.secondaryText),
-                          )
-                        ],
-                      ),
-                    ]),
-                  ],
-                ),
-                SizedBox(
-                  height: Sizes.responsiveMd(context),
-                ),
-                Column(
-                  children: [
-                    TextFieldWithTitle(
-                      controller: homeController,
-                      title: 'Home Town',
-                      hintText: 'Enter home town',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your home town';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(
-                      height: Sizes.responsiveMd(context),
-                    ),
-                    TextFieldWithTitle(
-                      controller: pinCodeController,
-                      title: 'Pincode',
-                      hintText: 'Enter pincode',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your pincode';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(
-                      height: Sizes.responsiveMd(context),
-                    ),
-                    TextFieldWithTitle(
-                      controller: localAddressController,
-                      title: 'Local Address',
-                      hintText: 'Enter local address',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your local address';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(
-                      height: Sizes.responsiveMd(context),
-                    ),
-                    TextFieldWithTitle(
-                      controller: permanentAddressController,
-                      title: 'Permanent Address',
-                      hintText: 'Enter permanent address',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your permanent address';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(
-                      height: Sizes.responsiveMd(context),
-                    ),
-                    GestureDetector(
-                      onTap: () => _selectDate(context),
-                      child: AbsorbPointer(
-                        child: TextFieldWithTitle(
-                          controller: dobController,
-                          title: 'Date of Birth',
-                          hintText: 'Enter date of birth',
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your date of birth';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ),
-                    SizedBox(
-                      height: Sizes.responsiveMd(context),
-                    ),
-                    TextFieldWithTitle(
-                      controller: categoryController,
-                      title: 'Category',
-                      hintText: 'Enter category',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your category';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(
-                      height: Sizes.responsiveMd(context),
-                    ),
-                    TextFieldWithTitle(
-                      controller: nationalityController,
-                      title: 'Nationality',
-                      hintText: 'Enter nationality',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your nationality';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-                SizedBox(
-                  height: Sizes.responsiveXxl(context),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.white,
+                            ),
+                          )),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.primary, width: 0.5),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                              borderRadius:
+                              BorderRadius.circular(Sizes.radiusSm)),
                           padding: EdgeInsets.symmetric(
                               vertical: Sizes.responsiveHorizontalSpace(context),
                               horizontal: Sizes.responsiveMdSm(context)),
                         ),
-                        onPressed: _savePersonalDetails,
-                        child: const Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.white,
-                          ),
-                        )),
-                    OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side:   BorderSide(color: AppColors.primary,width: 0.5),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(Sizes.radiusSm)),
-                          padding: EdgeInsets.symmetric(
-                              vertical: Sizes.responsiveSm(context),
-                              horizontal: Sizes.responsiveMdSm(context)),
-                        ),
                         onPressed: _saveAndNext,
-                        child:  Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
@@ -517,10 +399,12 @@ class _AddPersonalDetailsState extends State<AddPersonalDetails> {
                               color: AppColors.primary,
                             )
                           ],
-                        )),
-                  ],
-                )
-              ]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ));
