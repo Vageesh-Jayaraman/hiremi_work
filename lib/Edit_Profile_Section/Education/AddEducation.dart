@@ -5,7 +5,6 @@ import 'package:hiremi_version_two/Edit_Profile_Section/widgets/CustomTextField.
 import 'package:hiremi_version_two/Profile_Screen.dart';
 import 'package:hiremi_version_two/Utils/AppSizes.dart';
 import 'package:hiremi_version_two/Utils/colors.dart';
-
 import '../../API_Integration/Add Education/apiServices.dart';
 
 class AddEducation extends StatefulWidget {
@@ -51,27 +50,23 @@ class _AddEducationState extends State<AddEducation> {
     }
   }
 
-  Future<void> _saveEducation(BuildContext context) async {
+  Future<bool> _saveEducation(BuildContext context) async {
     if (!_formKey.currentState!.validate()) {
-      return;
+      return false;
     }
 
     final marksText = marksController.text;
     final marks = int.tryParse(marksText.replaceAll(RegExp(r'[^\d]'), ''));
     if (marks == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Marks should be a valid integer')),
-      );
-      return;
+      _showError('Marks should be a valid integer');
+      return false;
     }
 
     final yearText = yearController.text;
     final year = int.tryParse(yearText);
     if (year == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Year should be a valid integer')),
-      );
-      return;
+      _showError('Year should be a valid integer');
+      return false;
     }
 
     final prefs = await SharedPreferences.getInstance();
@@ -79,10 +74,8 @@ class _AddEducationState extends State<AddEducation> {
     if (savedId != null) {
       profileId = savedId.toString();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Profile ID not found')),
-      );
-      return;
+      _showError('Profile ID not found');
+      return false;
     }
 
     final details = {
@@ -99,14 +92,19 @@ class _AddEducationState extends State<AddEducation> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Education details saved successfully')),
       );
+      Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => ProfileScreen()));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save education details')),
-      );
+      _showError('Failed to save education details');
     }
+    return true;
   }
 
-
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,8 +290,6 @@ class _AddEducationState extends State<AddEducation> {
                       ),
                       onPressed: () async {
                         await _saveEducation(context);
-                        Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => ProfileScreen()));
                       },
                       child: const Text(
                         'Save',
@@ -314,34 +310,22 @@ class _AddEducationState extends State<AddEducation> {
                             horizontal: Sizes.responsiveMdSm(context)),
                       ),
                       onPressed: () async {
-                        await _saveEducation(context);
-                        Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => AddExperience()));
+                        if (await _saveEducation(context)) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => AddExperience()));
+                        }
                       },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Save & Next',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          SizedBox(
-                            width: Sizes.responsiveXs(context),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios_sharp,
-                            size: 11,
-                            color: AppColors.primary,
-                          )
-                        ],
+                      child:  Text(
+                        'Save & Next',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),

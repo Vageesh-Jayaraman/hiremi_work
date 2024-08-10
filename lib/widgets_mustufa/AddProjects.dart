@@ -65,18 +65,17 @@ class _AddProjectsState extends State<AddProjects> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Project details saved successfully')),
           );
+          Navigator.pop(context, true);
           return true;
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to save project details')),
           );
-          return false;
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile ID not found')),
         );
-        return false;
       }
     }
     return false;
@@ -305,17 +304,19 @@ class _AddProjectsState extends State<AddProjects> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                              borderRadius:
+                              BorderRadius.circular(Sizes.radiusSm)),
                           padding: EdgeInsets.symmetric(
                               vertical: Sizes.responsiveHorizontalSpace(context),
                               horizontal: Sizes.responsiveMdSm(context)),
                         ),
-                        onPressed: () async {
-                          bool success = await _saveProject();
-                          if (success) {
-                            Navigator.of(context).pop(); // Navigate back to the previous screen
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            _saveProject();
                           }
                         },
+
+
                         child: const Text(
                           'Save',
                           style: TextStyle(

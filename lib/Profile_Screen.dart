@@ -96,7 +96,7 @@ class ProfileScreen extends StatelessWidget {
               SizedBox(
                 height: Sizes.responsiveMd(context),
               ),
-              const PersonalLinks(),
+              SocialLinks(),
               SizedBox(
                 height: Sizes.responsiveMd(context),
               ),

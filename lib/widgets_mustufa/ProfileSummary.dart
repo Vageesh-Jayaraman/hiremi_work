@@ -24,7 +24,6 @@ class _ProfileSummaryState extends State<ProfileSummary> {
   Future<String?> _fetchProfileSummary() async {
     final AddProfileSummaryService service = AddProfileSummaryService();
     final summary = await service.getProfileSummary();
-    print('Fetched profile summary: $summary'); // Debug print
     return summary;
   }
 
@@ -47,7 +46,7 @@ class _ProfileSummaryState extends State<ProfileSummary> {
             title: 'Profile Summary',
             isTrue: false,
             child: const Text(
-              'No profile summary available. Tap to add.',
+              '',
               style: TextStyle(
                 fontSize: 9.0,
                 fontWeight: FontWeight.w500,
@@ -57,7 +56,6 @@ class _ProfileSummaryState extends State<ProfileSummary> {
           );
         } else {
           final summary = snapshot.data!;
-          print('Displaying profile summary: $summary'); // Debug print
           return OutlinedContainer(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => AddProfileSummary()),

@@ -37,8 +37,15 @@ class _ProjectsState extends State<Projects> {
   @override
   Widget build(BuildContext context) {
     return OutlinedContainer(
-      onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const AddProjects())),
+      onTap: () async {
+        final result = await Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const AddProjects()),
+        );
+        if (result == true) {
+          // Refresh the project details if the result indicates success
+          _loadProjects();
+        }
+      },
       title: 'Projects',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,44 +80,64 @@ class ProjectsChild extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 9.0, fontWeight: FontWeight.w500, color: Colors.black),
-        ),
-        SizedBox(height: Sizes.responsiveXs(context)),
-        Text(
-          duration,
-          style: TextStyle(fontSize: 6.0, fontWeight: FontWeight.w500, color: AppColors.secondaryText),
-        ),
-        SizedBox(height: Sizes.responsiveSm(context)),
-        Text(
-          description,
-          style: const TextStyle(fontSize: 9.0, fontWeight: FontWeight.w500, color: Colors.black),
-        ),
-        SizedBox(height: Sizes.responsiveSm(context)),
-        RoundedContainer(
-          color: Colors.blue[100],
-          radius: 2,
-          padding: EdgeInsets.all(Sizes.responsiveXs(context)),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.attach_file, color: Colors.blue, size: 8),
-              SizedBox(width: Sizes.responsiveXxs(context)),
-              Text(
-                link,
-                style: const TextStyle(
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.blue,
-                  fontWeight: FontWeight.w400,
-                  fontSize: 8,
-                  color: Colors.blue,
-                ),
-              ),
-            ],
+        if (title.isNotEmpty) ...[
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 9.0,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
+            ),
           ),
-        ),
-        SizedBox(height: Sizes.responsiveSm(context)),
+          SizedBox(height: Sizes.responsiveXs(context)),
+        ],
+        if (duration.isNotEmpty) ...[
+          Text(
+            duration,
+            style: TextStyle(
+              fontSize: 6.0,
+              fontWeight: FontWeight.w500,
+              color: AppColors.secondaryText,
+            ),
+          ),
+          SizedBox(height: Sizes.responsiveSm(context)),
+        ],
+        if (description.isNotEmpty) ...[
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 9.0,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
+            ),
+          ),
+          SizedBox(height: Sizes.responsiveSm(context)),
+        ],
+        if (link.isNotEmpty) ...[
+          RoundedContainer(
+            color: Colors.blue[100],
+            radius: 2,
+            padding: EdgeInsets.all(Sizes.responsiveXs(context)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.attach_file, color: Colors.blue, size: 8),
+                SizedBox(width: Sizes.responsiveXxs(context)),
+                Text(
+                  link,
+                  style: const TextStyle(
+                    decoration: TextDecoration.underline,
+                    decorationColor: Colors.blue,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 8,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: Sizes.responsiveSm(context)),
+        ],
         Divider(
           height: 0.25,
           thickness: 0.25,

@@ -77,16 +77,16 @@ class _AddExperienceState extends State<AddExperience> {
     }
   }
 
-  Future<void> _saveExperience() async {
+  Future<bool> _saveExperience() async {
     if (_formKey.currentState!.validate()) {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final String? profileId = prefs.getInt('profileId')?.toString();
 
       if (profileId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile ID not found')),
+          const SnackBar(content: Text('Profile ID not found')),
         );
-        return;
+        return false;
       }
 
       final details = {
@@ -105,14 +105,17 @@ class _AddExperienceState extends State<AddExperience> {
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Experience details added successfully')),
+          const SnackBar(content: Text('Experience details added successfully')),
         );
+        return true;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add experience details')),
+          const SnackBar(content: Text('Failed to add experience details')),
         );
+        return false;
       }
     }
+    return false;
   }
 
   @override
@@ -550,15 +553,22 @@ class _AddExperienceState extends State<AddExperience> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                      borderRadius: BorderRadius.circular(Sizes.radiusSm),
+                    ),
                     padding: EdgeInsets.symmetric(
-                        vertical: Sizes.responsiveHorizontalSpace(context),
-                        horizontal: Sizes.responsiveMdSm(context)),
+                      vertical: Sizes.responsiveHorizontalSpace(context),
+                      horizontal: Sizes.responsiveMdSm(context),
+                    ),
                   ),
                   onPressed: () async {
-                    await _saveExperience();
-                    Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => ProfileScreen()));
+                    if (_formKey.currentState!.validate()) { // Validate the form
+                      bool success = await _saveExperience();
+                      if (success) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => ProfileScreen()),
+                        );
+                      }
+                    }
                   },
                   child: const Text(
                     'Save',
@@ -569,19 +579,27 @@ class _AddExperienceState extends State<AddExperience> {
                     ),
                   ),
                 ),
+
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: AppColors.primary, width: 0.5),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(Sizes.radiusSm)),
+                      borderRadius: BorderRadius.circular(Sizes.radiusSm),
+                    ),
                     padding: EdgeInsets.symmetric(
-                        vertical: Sizes.responsiveSm(context),
-                        horizontal: Sizes.responsiveMdSm(context)),
+                      vertical: Sizes.responsiveSm(context),
+                      horizontal: Sizes.responsiveMdSm(context),
+                    ),
                   ),
                   onPressed: () async {
-                    await _saveExperience();
-                    Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => AddExperience()));
+                    if (_formKey.currentState!.validate()) { // Validate the form
+                      bool success = await _saveExperience();
+                      if (success) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (context) => AddExperience()),
+                        );
+                      }
+                    }
                   },
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -601,10 +619,11 @@ class _AddExperienceState extends State<AddExperience> {
                         Icons.arrow_forward_ios_sharp,
                         size: 11,
                         color: AppColors.primary,
-                      )
+                      ),
                     ],
                   ),
                 ),
+
               ],
             ),
           ]),

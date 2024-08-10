@@ -77,9 +77,7 @@ class _AddBasicDetailsState extends State<AddBasicDetails> {
   Future<void> _saveBasicDetails() async {
     if (_formKey.currentState!.validate()) {
       final int? savedId = await SharedPreferencesHelper.getProfileId();
-      print(savedId);
       if (savedId != null) {
-        print("Profile id is $savedId");
         profileId = savedId.toString();
       } else {
         print("No id found in SharedPreferences");
@@ -94,7 +92,6 @@ class _AddBasicDetailsState extends State<AddBasicDetails> {
         "whatsapp_number": whatsappController.text,
         "profile": profileId,
       };
-      print(details);
 
       final success = await _apiService.addOrUpdateBasicDetails(details);
 
@@ -109,9 +106,12 @@ class _AddBasicDetailsState extends State<AddBasicDetails> {
         );
       }
     } else {
-      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill in all required fields correctly')),
+      );
     }
   }
+
 
 
 
@@ -450,10 +450,12 @@ class _AddBasicDetailsState extends State<AddBasicDetails> {
                                 horizontal: Sizes.responsiveMdSm(context)),
                           ),
                           onPressed: () {
-                            if (isAllFieldFilled()) {
+                            if (_formKey.currentState!.validate()) {
                               _saveBasicDetails();
                             }
                           },
+
+
                           child: const Text(
                             'Save',
                             style: TextStyle(
@@ -473,12 +475,13 @@ class _AddBasicDetailsState extends State<AddBasicDetails> {
                               horizontal: Sizes.responsiveMdSm(context)),
                         ),
                         onPressed: () async {
-                          if (isAllFieldFilled()) {
+                          if (_formKey.currentState!.validate()) {
                             await _saveBasicDetails();
                             Navigator.of(context).push(MaterialPageRoute(
                                 builder: (ctx) => AddProfileSummary()));
                           }
                         },
+
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

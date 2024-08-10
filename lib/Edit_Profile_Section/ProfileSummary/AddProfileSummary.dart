@@ -44,10 +44,9 @@ class _AddProfileSummaryState extends State<AddProfileSummary> {
   Future<void> _saveProfileSummary(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       final int? savedId = await SharedPreferencesHelper.getProfileId();
-      profileId = savedId.toString();
-      print(savedId);
+      profileId = savedId?.toString() ?? '';
 
-      if (profileId == null) {
+      if (profileId.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Profile ID not found')),
         );
@@ -66,11 +65,17 @@ class _AddProfileSummaryState extends State<AddProfileSummary> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Profile summary added/updated successfully')),
         );
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (ctx) => ProfileScreen()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to add/update profile summary')),
         );
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill in the required fields correctly')),
+      );
     }
   }
 
@@ -165,10 +170,10 @@ class _AddProfileSummaryState extends State<AddProfileSummary> {
                         horizontal: Sizes.responsiveMdSm(context),
                       ),
                     ),
-                    onPressed: () async {
-                      await _saveProfileSummary(context);
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (ctx) => ProfileScreen()));
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        _saveProfileSummary(context);
+                      }
                     },
                     child: const Text(
                       'Save',
@@ -190,10 +195,12 @@ class _AddProfileSummaryState extends State<AddProfileSummary> {
                         horizontal: Sizes.responsiveMdSm(context),
                       ),
                     ),
-                    onPressed: () async {
-                      await _saveProfileSummary(context);
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (ctx) => AddKeySkills()));
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        _saveProfileSummary(context);
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (ctx) => AddKeySkills()));
+                      }
                     },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,

@@ -101,7 +101,7 @@ class _PersonalInfoState extends State<PersonalInfo> {
             subtitle: personalDetails['ability'] ?? 'N/A',
           ),
           PersonalInfoChild(
-            title: 'Native Language',
+            title: 'Native',
             subtitle: personalDetails['home_town'] ?? 'N/A',
           ),
         ],

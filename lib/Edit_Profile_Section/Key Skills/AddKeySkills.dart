@@ -31,8 +31,6 @@ class _AddKeySkillsState extends State<AddKeySkills> {
     final loadedSkills = await _apiService.getKeySkills();
     setState(() {
       skillController.text = loadedSkills.join(', ');
-      // Assuming we have a way to get the existingSkillId from the skills
-      // Update existingSkillId here if necessary
     });
   }
 
@@ -65,6 +63,10 @@ class _AddKeySkillsState extends State<AddKeySkills> {
           SnackBar(content: Text('Failed to add/update key skills')),
         );
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill in the required fields correctly')),
+      );
     }
   }
 
@@ -157,9 +159,11 @@ class _AddKeySkillsState extends State<AddKeySkills> {
                           horizontal: Sizes.responsiveMdSm(context)),
                     ),
                     onPressed: () async {
-                      await _saveKeySkills(context);
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => ProfileScreen()));
+                      if (_formKey.currentState!.validate()) {
+                        await _saveKeySkills(context);
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => ProfileScreen()));
+                      }
                     },
                     child: const Text(
                       'Save',
@@ -180,14 +184,16 @@ class _AddKeySkillsState extends State<AddKeySkills> {
                           horizontal: Sizes.responsiveMdSm(context)),
                     ),
                     onPressed: () async {
-                      await _saveKeySkills(context);
-                      Navigator.of(context).push(MaterialPageRoute(
-                          builder: (context) => AddEducation()));
+                      if (_formKey.currentState!.validate()) {
+                        await _saveKeySkills(context);
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => AddEducation()));
+                      }
                     },
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                         Text(
+                        Text(
                           'Save & Next',
                           style: TextStyle(
                             fontSize: 12,
@@ -212,4 +218,3 @@ class _AddKeySkillsState extends State<AddKeySkills> {
     );
   }
 }
-
