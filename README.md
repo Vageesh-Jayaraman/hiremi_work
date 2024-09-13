@@ -1,16 +1,40 @@
-# hiremi_version_two
+# HireMi Work
 
-A new Flutter project.
+![Flutter](https://img.shields.io/badge/Flutter-v3.0-blue?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-v2.18-blue?logo=dart&logoColor=white)
+![API Integration](https://img.shields.io/badge/API%20Integration-Backend-blue)
+![SharedPreferences](https://img.shields.io/badge/SharedPreferences-Storage-brightgreen)
+![Version Control](https://img.shields.io/badge/GitHub-VersionControl-yellow?logo=github&logoColor=black)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+## Overview
+
+This project was part of my internship at CRTD Technologies, where I developed a recruitment platform. The work mainly revolved around API integration, frontend validation, and building user-friendly interfaces in **Flutter**.
+
+### Key Features:
+- **API Integration**: Securely managed user credentials and data retrieval.
+- **Frontend Validations**: Enhanced data quality by implementing input checks not covered by backend validations.
+- **Profile Page UI**: Designed and connected the profile page with backend APIs for seamless user management.
+- **Efficient Storage**: Utilized **SharedPreferences** for smooth, local data storage.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### Prerequisites:
+- Flutter 3.0 or above
+- Dart 2.18 or above
 
-A few resources to get you started if this is your first Flutter project:
+To run this project on your local machine:
+```bash
+git clone https://github.com/Vageesh-Jayaraman/hiremi_work.git
+cd hiremi_work
+flutter pub get
+flutter run
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+
+
+
+https://github.com/user-attachments/assets/48844fc5-ea5a-4f22-94cf-a464a74f49b6
+
+
